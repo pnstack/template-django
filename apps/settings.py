@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'djoser',
     # apps
     'apps.core',
+    'apps.example'
 ]
 
 MIDDLEWARE = [
@@ -139,8 +140,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'core.User'
 DJOSER = {
     'SERIALIZERS': {
-        'user_create': 'nstore.core.serializers.UserCreateSerializer',
-        'current_user': 'nstore.core.serializers.UserSerializer',
+        'user_create': 'apps.core.serializers.UserCreateSerializer',
+        'current_user': 'apps.core.serializers.UserSerializer',
     },
 }
 
