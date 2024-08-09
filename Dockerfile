@@ -12,4 +12,4 @@ RUN pip3 install -r requirements.txt
 RUN python manage.py collectstatic --no-input
 
 EXPOSE 5000
-CMD ["python", "manage.py", "runserver", "5000"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:5000"]
