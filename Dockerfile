@@ -50,5 +50,7 @@ USER appuser
 
 EXPOSE 5000
 
-# Use gunicorn for production (fallback to runserver for dev)
+# Note: Using Django's runserver for development/testing
+# For production, use a WSGI server like gunicorn:
+# CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "apps.wsgi:application"]
 CMD ["python", "manage.py", "runserver", "0.0.0.0:5000"]
