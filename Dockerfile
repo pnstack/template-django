@@ -1,56 +1,37 @@
-# Multi-stage build for optimized image size
-FROM python:3.12-slim AS builder
+# syntax=docker/dockerfile:1
 
-# Install build dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+FROM python:3.13-slim AS builder
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-# Create virtual environment
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Copy requirements first for better layer caching
-COPY requirements.txt .
-
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
-
-# Final stage
-FROM python:3.12-slim
-
-# Install runtime dependencies only
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    ffmpeg \
-    libsm6 \
-    libxext6 \
-    zbar-tools \
-    libzbar0 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy virtual environment from builder
-COPY --from=builder /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=0
 
 WORKDIR /app
 
-# Copy application code
+# Install dependencies first for better layer caching
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-build --no-dev --no-install-project
+
 COPY . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-build --no-dev
 
-# Collect static files
-RUN python manage.py collectstatic --no-input
+RUN SECRET_KEY=build .venv/bin/python manage.py collectstatic --no-input
 
-# Create non-root user for security
-RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app
-USER appuser
 
-EXPOSE 5000
+FROM python:3.13-slim
 
-# Note: Using Django's runserver for development/testing
-# For production, use a WSGI server like gunicorn:
-# CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "apps.wsgi:application"]
-CMD ["python", "manage.py", "runserver", "0.0.0.0:5000"]
+RUN useradd --create-home --uid 1000 app
+WORKDIR /app
+COPY --from=builder --chown=app:app /app /app
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1
+
+USER app
+EXPOSE 8000
+
+CMD ["sh", "-c", "python manage.py migrate --no-input && gunicorn apps.wsgi:application --bind 0.0.0.0:8000 --workers ${WEB_CONCURRENCY:-4} --access-logfile -"]

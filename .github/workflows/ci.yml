@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+
+      - name: Check lockfile is up to date
+        run: uv lock --locked
+
+      - name: Ruff lint
+        run: |
+          uv sync --locked --no-build --only-dev
+          uv run --no-sync ruff check --output-format=github .
+
+      - name: Ruff format
+        run: uv run --no-sync ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.13', '3.14']
+        database: ['sqlite', 'postgres']
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: app
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d app"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: ${{ matrix.database == 'postgres' && 'postgres://postgres:postgres@localhost:5432/app' || 'sqlite:///db.sqlite3' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --locked --no-build
+
+      - name: Django system checks
+        run: uv run --no-sync manage.py check
+
+      - name: Check for missing migrations
+        run: uv run --no-sync manage.py makemigrations --check --dry-run
+
+      - name: Test
+        run: uv run --no-sync pytest
+
+  deploy-check:
+    runs-on: ubuntu-latest
+    env:
+      DEBUG: 'false'
+      SECRET_KEY: ci-deploy-check-${{ github.run_id }}-not-a-real-secret-value
+      SECURE_HSTS_SECONDS: '31536000'
+      EMAIL_URL: smtp+tls://user:pass@smtp.example.com:587
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+
+      - name: Django deployment checks
+        run: |
+          uv sync --locked --no-build --no-dev
+          uv run --no-sync manage.py check --deploy --fail-level ERROR
