@@ -1,36 +1,88 @@
-# Django Template Project
+# Django Template
 
-This is a Django project template.
+[![CI](https://github.com/pnstack/template-django/actions/workflows/ci.yml/badge.svg)](https://github.com/pnstack/template-django/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## Project Structure
+Django REST API template: Django 6.1, DRF, JWT auth (djoser + simplejwt), OpenAPI docs (drf-spectacular), managed with [uv](https://docs.astral.sh/uv/).
 
-The project is structured as follows:
+## Use this template
 
-- `apps/`: Contains the Django applications for the project.
-- `settings.py`: Contains the settings for the Django project.
-- `urls.py`: Contains the URL configurations for the Django project.
-- `wsgi.py` and `asgi.py`: Contain the WSGI and ASGI applications for the Django project respectively.
-- `manage.py`: A command-line utility that lets you interact with this Django project in various ways.
+Click **Use this template** on GitHub, or:
 
-## Setup
+```bash
+gh repo create my-project --template pnstack/template-django --clone
+```
 
-1. Clone the repository.
-2. Install the requirements using `pip install -r requirements.txt`.
-3. Run the server using `python manage.py runserver`.
+## Requirements
 
-## Apps
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) (installs Python 3.13 automatically if needed)
+- Docker (optional, for Postgres / production image)
 
-- `core`: The core application of the project.
-- `example`: An example application.
+## Quick start
 
-## API
+```bash
+cp .env.example .env
+make install      # uv sync
+make migrate
+make superuser
+make dev          # http://localhost:8000
+```
 
-The API documentation can be accessed at `/api/` when the server is running.
+## Common commands
+
+| Command          | Description                                   |
+| ---------------- | --------------------------------------------- |
+| `make dev`       | Run the dev server                            |
+| `make migration` | Create migrations                             |
+| `make migrate`   | Apply migrations                              |
+| `make test`      | Run tests (pytest)                            |
+| `make lint`      | Lint and check formatting (ruff)              |
+| `make format`    | Auto-fix lint issues and format               |
+| `make check`     | Django deployment checks                      |
+| `make up`        | Run app + Postgres with Docker Compose        |
+
+Add a dependency with `uv add <package>` (or `uv add --dev <package>`).
+
+## Configuration
+
+All settings come from environment variables (or `.env`). See `.env.example`.
+
+| Variable               | Default                  |
+| ---------------------- | ------------------------ |
+| `DEBUG`                | `false`                  |
+| `SECRET_KEY`           | insecure dev key         |
+| `ALLOWED_HOSTS`        | `localhost,127.0.0.1`    |
+| `DATABASE_URL`         | `sqlite:///db.sqlite3`   |
+| `EMAIL_URL`            | `consolemail://`         |
+| `CORS_ALLOWED_ORIGINS` | empty                    |
+| `CSRF_TRUSTED_ORIGINS` | empty                    |
+
+When `DEBUG=false`, HTTPS redirect and secure cookies are enabled. Set `SECURE_SSL_REDIRECT=false` if TLS is terminated elsewhere and the proxy doesn't send `X-Forwarded-Proto`.
+
+## Endpoints
+
+- `/api/docs/`: Swagger UI
+- `/api/redoc/`: ReDoc
+- `/api/schema/`: OpenAPI schema
+- `/auth/`: djoser user and JWT endpoints (`/auth/jwt/create/`, `/auth/users/`, ...)
+- `/admin/`: Django admin
+- `/health/`: health check
+
+## Project structure
+
+- `apps/`: Django project (settings, urls, wsgi/asgi)
+  - `core/`: custom `User` model (email login) and auth helpers
+  - `example/`: example app
+- `pyproject.toml` / `uv.lock`: dependencies and tool config (ruff, pytest)
+
+## Deployment
+
+The `Dockerfile` builds a production image (uv, gunicorn, whitenoise for static files). On start the container runs migrations and then serves on port 8000. CI (`.github/workflows/ci.yml`) runs ruff, a lockfile check, tests on Python 3.13/3.14 against SQLite and Postgres, and `check --deploy`. `release.yml` publishes the image to GHCR. Dependabot keeps uv, Actions and Docker dependencies up to date.
 
 ## Contributing
 
-Please read `CONTRIBUTING.md` for details on our code of conduct, and the process for submitting pull requests to us.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report security issues per [SECURITY.md](SECURITY.md).
 
 ## License
 
-This project is licensed under the MIT License - see the `LICENSE.md` file for details.# Template django
+[MIT](LICENSE)
