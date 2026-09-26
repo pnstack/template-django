@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: app
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -18,9 +18,9 @@ services:
       - "8000:8000"
     environment:
       DEBUG: "false"
-      SECRET_KEY: change-me-in-production
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
       ALLOWED_HOSTS: localhost,127.0.0.1
-      DATABASE_URL: postgres://postgres:postgres@db:5432/app
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/app
       SECURE_SSL_REDIRECT: "false"
     depends_on:
       db:

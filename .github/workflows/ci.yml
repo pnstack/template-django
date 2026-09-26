@@ -17,9 +17,9 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           enable-cache: true
 
@@ -27,10 +27,12 @@ jobs:
         run: uv lock --locked
 
       - name: Ruff lint
-        run: uv run --locked ruff check --output-format=github .
+        run: |
+          uv sync --locked --no-build --only-dev
+          uv run --no-sync ruff check --output-format=github .
 
       - name: Ruff format
-        run: uv run --locked ruff format --check .
+        run: uv run --no-sync ruff format --check .
 
   test:
     runs-on: ubuntu-latest
@@ -56,24 +58,24 @@ jobs:
     env:
       DATABASE_URL: ${{ matrix.database == 'postgres' && 'postgres://postgres:postgres@localhost:5432/app' || 'sqlite:///db.sqlite3' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           enable-cache: true
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --locked
+        run: uv sync --locked --no-build
 
       - name: Django system checks
-        run: uv run manage.py check
+        run: uv run --no-sync manage.py check
 
       - name: Check for missing migrations
-        run: uv run manage.py makemigrations --check --dry-run
+        run: uv run --no-sync manage.py makemigrations --check --dry-run
 
       - name: Test
-        run: uv run pytest
+        run: uv run --no-sync pytest
 
   deploy-check:
     runs-on: ubuntu-latest
@@ -83,11 +85,13 @@ jobs:
       SECURE_HSTS_SECONDS: '31536000'
       EMAIL_URL: smtp+tls://user:pass@smtp.example.com:587
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           enable-cache: true
 
       - name: Django deployment checks
-        run: uv run --locked manage.py check --deploy --fail-level ERROR
+        run: |
+          uv sync --locked --no-build --no-dev
+          uv run --no-sync manage.py check --deploy --fail-level ERROR

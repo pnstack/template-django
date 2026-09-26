@@ -13,11 +13,11 @@ WORKDIR /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked --no-dev --no-install-project
+    uv sync --locked --no-build --no-dev --no-install-project
 
 COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev
+    uv sync --locked --no-build --no-dev
 
 RUN SECRET_KEY=build .venv/bin/python manage.py collectstatic --no-input
 
