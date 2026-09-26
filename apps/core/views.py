@@ -27,6 +27,8 @@ from .serializers import (
 )
 from .utils import Util
 
+INVALID_TOKEN_MESSAGE = "Token is not valid, please request a new one"
+
 
 class CustomRedirect(HttpResponsePermanentRedirect):
     allowed_schemes = [os.environ.get("APP_SCHEME"), "http", "https"]
@@ -107,7 +109,7 @@ class PasswordTokenCheckAPI(GenericAPIView):
 
             if not PasswordResetTokenGenerator().check_token(user, token):
                 return Response(
-                    {"error": "Token is not valid, please request a new one"},
+                    {"error": INVALID_TOKEN_MESSAGE},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             return Response({"success": "Token is valid"}, status=status.HTTP_200_OK)
@@ -116,13 +118,13 @@ class PasswordTokenCheckAPI(GenericAPIView):
             try:
                 if not PasswordResetTokenGenerator().check_token(user):
                     return Response(
-                        {"error": "Token is not valid, please request a new one"},
+                        {"error": INVALID_TOKEN_MESSAGE},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
             except UnboundLocalError:
                 return Response(
-                    {"error": "Token is not valid, please request a new one"},
+                    {"error": INVALID_TOKEN_MESSAGE},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 

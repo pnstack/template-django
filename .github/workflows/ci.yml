@@ -27,12 +27,10 @@ jobs:
         run: uv lock --locked
 
       - name: Ruff lint
-        run: |
-          uv sync --locked --no-build --only-dev
-          uv run --no-sync ruff check --output-format=github .
+        run: uv run --locked --no-build ruff check --output-format=github .
 
       - name: Ruff format
-        run: uv run --no-sync ruff format --check .
+        run: uv run --locked --no-build ruff format --check .
 
   test:
     runs-on: ubuntu-latest
@@ -47,7 +45,7 @@ jobs:
         env:
           POSTGRES_DB: app
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -56,7 +54,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: ${{ matrix.database == 'postgres' && 'postgres://postgres:postgres@localhost:5432/app' || 'sqlite:///db.sqlite3' }}
+      DATABASE_URL: ${{ matrix.database == 'postgres' && 'postgres://postgres@localhost:5432/app' || 'sqlite:///db.sqlite3' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -69,13 +67,13 @@ jobs:
         run: uv sync --locked --no-build
 
       - name: Django system checks
-        run: uv run --no-sync manage.py check
+        run: uv run --locked --no-build manage.py check
 
       - name: Check for missing migrations
-        run: uv run --no-sync manage.py makemigrations --check --dry-run
+        run: uv run --locked --no-build manage.py makemigrations --check --dry-run
 
       - name: Test
-        run: uv run --no-sync pytest
+        run: uv run --locked --no-build pytest
 
   deploy-check:
     runs-on: ubuntu-latest
@@ -92,6 +90,4 @@ jobs:
           enable-cache: true
 
       - name: Django deployment checks
-        run: |
-          uv sync --locked --no-build --no-dev
-          uv run --no-sync manage.py check --deploy --fail-level ERROR
+        run: uv run --locked --no-build --no-dev manage.py check --deploy --fail-level ERROR
