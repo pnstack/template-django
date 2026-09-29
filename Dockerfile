@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.13-slim AS builder
+FROM python:3.14-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 ENV UV_COMPILE_BYTECODE=1 \
@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 RUN SECRET_KEY=build .venv/bin/python manage.py collectstatic --no-input
 
 
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 RUN useradd --create-home --uid 1000 app
 WORKDIR /app
